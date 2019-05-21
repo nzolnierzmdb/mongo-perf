@@ -133,6 +133,33 @@ tests.push( { name: "Commands.FindAndModifySortedUpdate",
                   }
               ] } );
 
+/**
+ * Semantically equivalent to FindAndModifySortedUpdate except uses a
+ * pipeline-style update to increment the count field.
+ */
+tests.push( { name: "Commands.FindAndModifySortedUpdateWithPipeline",
+              tags: ["command","regression"],
+              pre: function setUpFindAndModifySortedUpdateWithPipeline( collection ) {
+                  collection.drop();
+                  Random.setRandomSeed(22002);
+                  var nDocs = 5000;
+                  var bulk = collection.initializeUnorderedBulkOp();
+                  for (var i = 0; i < nDocs; i++) {
+                      bulk.insert({ count: 0, rand: Random.rand() });
+                  }
+                  bulk.execute();
+              },
+              ops: [
+                  { op: "command",
+                    ns: "#B_DB",
+                    command: { findAndModify: "#B_COLL",
+                               query: {},
+                               update: [{$set: {count: {$add: ["$count", 1]}}}],
+                               sort: { count: 1, rand: 1 }
+                    }
+                  }
+              ] } );
+
 /*
  * Setup: Create collection of documents with timestamps.
  * Test: Call findAndModify with a sort on the timestamp, deleting the document, then inserting a
@@ -187,6 +214,34 @@ tests.push( { name: "Commands.FindAndModifySortedUpdateIndexed",
                     command: { findAndModify: "#B_COLL",
                                query: {},
                                update: { $inc: { count: 1 } },
+                               sort: { count: 1, rand: 1 }
+                    }
+                  }
+              ] } );
+
+/**
+ * Semantically equivalent to FindAndModifySortedUpdateIndexed except uses a
+ * pipeline-style update to increment the count field.
+ */
+tests.push( { name: "Commands.FindAndModifySortedUpdateIndexedWithPipeline",
+              tags: ["command","regression"],
+              pre: function setUpFindAndModifySortedUpdate( collection ) {
+                  collection.drop();
+                  Random.setRandomSeed(22002);
+                  var nDocs = 5000;
+                  var bulk = collection.initializeUnorderedBulkOp();
+                  for (var i = 0; i < nDocs; i++) {
+                      bulk.insert({ count: 0, rand: Random.rand() });
+                  }
+                  bulk.execute();
+                  collection.ensureIndex({count: 1, rand: 1});
+              },
+              ops: [
+                  { op: "command",
+                    ns: "#B_DB",
+                    command: { findAndModify: "#B_COLL",
+                               query: {},
+                               update: [{$set: {count: {$add: ["$count", 1]}}}],
                                sort: { count: 1, rand: 1 }
                     }
                   }
